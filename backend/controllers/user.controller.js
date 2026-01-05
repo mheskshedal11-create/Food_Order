@@ -1,8 +1,10 @@
 import User from "../models/user.model.js";
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import generateAccessToken from "../utils/acessToken.js";
 import generateRefreshToken from "../utils/refersToken.js";
+import generateOpt from "../helper/generateOtp.js";
+import sendEmail from "../utils/nodemiller.js";
 
 
 //for user register
@@ -111,39 +113,104 @@ export const loginController = async (req, res) => {
     }
 }
 
-//for user logout
+//for logut 
 export const logoutController = async (req, res) => {
     try {
-        const cookieDetail = {
+        const userId = req.user._id; // make sure authMiddleware runs before this
+        console.log("Logging out user:", userId);
+
+        const cookieOptions = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
-        }
-        res.clearCookie("access_token", cookieDetail)
-        res.clearCookie("refresh_token", cookieDetail)
+            sameSite: "strict",
+        };
+
+        // Clear cookies
+        res.clearCookie("access_token", cookieOptions);
+        res.clearCookie("refresh_token", cookieOptions);
+
+        // Remove refresh token from DB
+        await User.findByIdAndUpdate(userId, { $unset: { refresh_token: null } });
+
         return res.status(200).json({
-            success: false,
-            message: "User logout successfully"
-        })
+            success: true,
+            message: "User logged out successfully"
+        });
     } catch (error) {
-        console.log(error)
+        console.error(error);
         return res.status(500).json({
             success: false,
-            message: "Failed to Logout"
-        })
+            message: "Failed to logout"
+        });
     }
-}
+};
 
 //forgot password
-
 export const forgotPasswordController = async (req, res) => {
+    try {
+        const { email, mobile } = req.body;
+
+        // 1. Find user
+        const user = await User.findOne({
+            $or: [{ email }, { mobile }]
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Email or mobile number not registered"
+            });
+        }
+
+        // 2. Generate OTP
+        const otp = generateOpt()
+
+        // 3. Hash OTP
+        const hashedOtp = crypto
+            .createHash("sha256")
+            .update(otp.toString())
+            .digest("hex");
+
+        // 4. OTP expiry (20 minutes)
+        const otpExpiry = new Date(Date.now() + 20 * 60 * 1000);
+
+        // 5. Save OTP in DB
+        await User.findByIdAndUpdate(
+            user._id,
+            {
+                $set: {
+                    forgot_otp: hashedOtp,
+                    forgot_date: otpExpiry
+                }
+            }
+        );
+
+        // 6. Send OTP email
+        await sendEmail({
+            to: user.email,
+            subject: "Password Reset OTP",
+            otp: otp
+        });
+
+        // 7. Response
+        return res.status(200).json({
+            success: true,
+            message: "OTP sent to registered email"
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to process forgot password"
+        });
+    }
+};
+
+export const verifyOtp = async (req, res) => {
     try {
 
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            success: false,
-            message: "Faield to forgot password "
-        })
+
     }
 }
