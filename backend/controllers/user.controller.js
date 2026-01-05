@@ -206,11 +206,60 @@ export const forgotPasswordController = async (req, res) => {
         });
     }
 };
-
-export const verifyOtp = async (req, res) => {
+//verify otp
+export const verifyOtpController = async (req, res) => {
     try {
+        const { email, mobile, otp } = req.body;
+
+        // 1. Find user
+        const user = await User.findOne({
+            $or: [{ email }, { mobile }]
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Email or mobile number not registered"
+            });
+        }
+
+        // 2. Check if OTP is expired
+        if (!user.forgot_date || user.forgot_date < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP has expired, please request a new one"
+            });
+        }
+
+        // 3. Hash incoming OTP
+        const hashedOtp = crypto
+            .createHash("sha256")
+            .update(otp.toString())
+            .digest("hex");
+
+        // 4. Compare with stored hashed OTP
+        if (user.forgot_otp !== hashedOtp) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid OTP, please enter the correct OTP"
+            });
+        }
+
+        // 5. Optional: Clear OTP from DB after verification
+        user.forgot_otp = null;
+        user.forgot_date = null;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP verified successfully"
+        });
 
     } catch (error) {
-
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to verify OTP"
+        });
     }
-}
+};
