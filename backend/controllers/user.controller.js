@@ -111,3 +111,26 @@ export const loginController = async (req, res) => {
     }
 }
 
+//for user logout
+
+export const logoutController = async (req, res) => {
+    try {
+        const cookieDetail = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict"
+        }
+        res.clearCookie("access_token", cookieDetail)
+        res.clearCookie("refresh_token", cookieDetail)
+        return res.status(200).json({
+            success: false,
+            message: "User logout successfully"
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: "Failed to Logout"
+        })
+    }
+}
