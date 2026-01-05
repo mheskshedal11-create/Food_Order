@@ -112,7 +112,6 @@ export const loginController = async (req, res) => {
 }
 
 //for user logout
-
 export const logoutController = async (req, res) => {
     try {
         const cookieDetail = {
@@ -131,6 +130,20 @@ export const logoutController = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to Logout"
+        })
+    }
+}
+
+//forgot password
+
+export const forgotPasswordController = async (req, res) => {
+    try {
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: "Faield to forgot password "
         })
     }
 }
