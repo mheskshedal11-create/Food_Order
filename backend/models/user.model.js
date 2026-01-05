@@ -26,6 +26,9 @@ const userSchema = mongoose.Schema({
         enum: ["user", "admin"],
         default: "user",
     },
+    refresh_token: {
+        type: String
+    },
     forgot_otp: {
         type: String,
     },

@@ -5,7 +5,7 @@ import helmet from 'helmet'
 import Connection from './db/db.js'
 import globalError from './middlewares/globalError.js'
 import userRouter from './routes/user.route.js'
-
+import cookieParser from 'cookie-parser'
 const app = express()
 const PORT = process.env.PORT
 
@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use(morgan('dev'))
 app.use(helmet())
+app.use(cookieParser())
 
 //global Error handling
 app.use(globalError)
