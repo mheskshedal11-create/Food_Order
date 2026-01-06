@@ -39,7 +39,8 @@ export const registerController = async (req, res) => {
             email,
             password: hashPassword,
             mobile,
-            role: role || 'user'
+            role: role || 'user',
+
         })
         await newUser.save()
         const userDetail = newUser.toObject()
@@ -206,12 +207,91 @@ export const forgotPasswordController = async (req, res) => {
         });
     }
 };
-//verify otp
+
 export const verifyOtpController = async (req, res) => {
     try {
         const { email, mobile, otp } = req.body;
 
         // 1. Find user
+        const user = await User.findOne({
+            $or: [{ email }, { mobile }]
+        });
+
+        // Validate inputs
+        if (!otp) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP is required"
+            });
+        }
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Email or mobile number not registered"
+            });
+        }
+
+        // 2. Check if OTP exists in database
+        if (!user.forgot_otp) {
+            return res.status(400).json({
+                success: false,
+                message: "No OTP found. Please request a new OTP"
+            });
+        }
+
+        // 3. Check if OTP is expired
+        if (!user.forgot_date || user.forgot_date < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP has expired, please request a new one"
+            });
+        }
+
+        // 4. Hash incoming OTP
+        const hashedOtp = crypto
+            .createHash("sha256")
+            .update(otp.toString())
+            .digest("hex");
+
+        // 5. Compare with stored hashed OTP
+        if (user.forgot_otp !== hashedOtp) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid OTP, please enter the correct OTP"
+            });
+        }
+        user.forgot_otp = null;
+        user.forgot_date = null;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP verified successfully",
+
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to verify OTP"
+        });
+    }
+};
+// Modified createNewPasswordController - require reset token
+export const createNewPasswordController = async (req, res) => {
+    try {
+        const { email, mobile, newPassword, confirmPassword } = req.body;
+
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Password and confirm password do not match"
+            });
+        }
+
         const user = await User.findOne({
             $or: [{ email }, { mobile }]
         });
@@ -223,43 +303,24 @@ export const verifyOtpController = async (req, res) => {
             });
         }
 
-        // 2. Check if OTP is expired
-        if (!user.forgot_date || user.forgot_date < new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: "OTP has expired, please request a new one"
-            });
-        }
 
-        // 3. Hash incoming OTP
-        const hashedOtp = crypto
-            .createHash("sha256")
-            .update(otp.toString())
-            .digest("hex");
+        const salt = await bcrypt.genSalt(10);
+        const hashPassword = await bcrypt.hash(newPassword, salt);
 
-        // 4. Compare with stored hashed OTP
-        if (user.forgot_otp !== hashedOtp) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid OTP, please enter the correct OTP"
-            });
-        }
-
-        // 5. Optional: Clear OTP from DB after verification
-        user.forgot_otp = null;
-        user.forgot_date = null;
+        // Clear reset token and update password
+        user.password = hashPassword;
         await user.save();
 
         return res.status(200).json({
             success: true,
-            message: "OTP verified successfully"
+            message: "Password updated successfully"
         });
 
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return res.status(500).json({
             success: false,
-            message: "Failed to verify OTP"
+            message: "Failed to create new password"
         });
     }
 };
