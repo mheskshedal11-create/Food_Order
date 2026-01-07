@@ -6,6 +6,9 @@ import Connection from './db/db.js'
 import globalError from './middlewares/globalError.js'
 import userRouter from './routes/user.route.js'
 import cookieParser from 'cookie-parser'
+import categoryRouter from './routes/category.route.js'
+
+
 const app = express()
 const PORT = process.env.PORT
 
@@ -22,6 +25,7 @@ app.use(globalError)
 
 //api 
 app.use('/api/v1/user', userRouter)
+app.use('/api/v1/category', categoryRouter)
 
 //dbconnection 
 Connection().then(() => {
