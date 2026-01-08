@@ -1,4 +1,5 @@
 import Category from "../models/category.model.js";
+import Item from "../models/item.model.js";
 import slugify from "slugify";
 
 export const createCategoryController = async (req, res) => {
@@ -134,3 +135,116 @@ export const getCategoryByIdController = async (req, res) => {
     }
 };
 
+// Delete category
+export const deleteCategoryController = async (req, res) => {
+    try {
+        const { Id } = req.params;
+        if (!Id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category ID is required'
+            });
+        }
+
+        // Check if category exists
+        const category = await Category.findById(Id);
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        // Check if any items are using this category
+        const itemsCount = await Item.countDocuments({ category: Id });
+        // Adjust field name if different: { categoryId: Id } or { item: Id }
+
+        if (itemsCount > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot delete category. ${itemsCount} item(s) are using this category. Please delete the items first.`,
+                itemCount: itemsCount
+            });
+        }
+
+        // Delete the category
+        await Category.findByIdAndDelete(Id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Category deleted successfully',
+            data: category
+        });
+
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to delete category',
+            error: error.message
+        });
+    }
+};
+
+// Update category
+export const updateCategoryController = async (req, res) => {
+    try {
+        const { Id } = req.params;
+        const { name, Descriptions } = req.body;
+
+        if (!Id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category ID is required'
+            });
+        }
+
+        // Check if category exists
+        const category = await Category.findById(Id);
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        // If name is being updated, check for duplicate slug
+        if (name && name !== category.name) {
+            const slug = slugify(name, { lower: true, strict: true, trim: true });
+            const existingCategory = await Category.findOne({ slug, _id: { $ne: Id } });
+
+            if (existingCategory) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Category with this name already exists'
+                });
+            }
+        }
+
+        // Update category
+        const updatedCategory = await Category.findByIdAndUpdate(
+            Id,
+            {
+                name: name || category.name,
+                Descriptions: Descriptions || category.Descriptions
+            },
+            { new: true, runValidators: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Category updated successfully',
+            data: updatedCategory
+        });
+
+    } catch (error) {
+        console.error('Error updating category:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update category',
+            error: error.message
+        });
+    }
+};

@@ -7,6 +7,7 @@ import globalError from './middlewares/globalError.js'
 import userRouter from './routes/user.route.js'
 import cookieParser from 'cookie-parser'
 import categoryRouter from './routes/category.route.js'
+import itemRouter from './routes/item.route.js'
 
 
 const app = express()
@@ -26,6 +27,7 @@ app.use(globalError)
 //api 
 app.use('/api/v1/user', userRouter)
 app.use('/api/v1/category', categoryRouter)
+app.use('/api/v1/item', itemRouter)
 
 //dbconnection 
 Connection().then(() => {
