@@ -1,25 +1,22 @@
 import Item from "../models/item.model.js";
 import slugify from "slugify";
-
+import Category from "../models/category.model.js";
+//create category controller
 export const createItemController = async (req, res) => {
     try {
         const { category, itemname, description, price, isAvailable, tags, itemImage, orderCount } = req.body;
-        // Check if user is authenticated
-        if (!req.user || !req.user._id) {
-            return res.status(401).json({
+        // Check if category exists in database
+        const categoryExists = await Category.findById(category);
+        if (!categoryExists) {
+            return res.status(404).json({
                 success: false,
-                message: 'User not authenticated'
+                message: 'Category not found'
             });
         }
-        // Validate category
-        if (!category) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please select Category'
-            });
-        }
+
         // Generate slug from itemname
         const slug = slugify(itemname, { lower: true, strict: true, trim: true });
+
         // Check if item already exists
         const exists = await Item.findOne({ slug });
         if (exists) {
@@ -33,6 +30,8 @@ export const createItemController = async (req, res) => {
         if (tags) {
             if (Array.isArray(tags)) {
                 arrayTag = tags;
+            } else if (typeof tags === 'string') {
+                arrayTag = tags.split(',').map(tag => tag.trim());
             } else {
                 arrayTag = [tags];
             }
@@ -49,16 +48,19 @@ export const createItemController = async (req, res) => {
             itemImage: itemImage || [],
             orderCount: orderCount || 0
         });
+
         await newItem.save();
+
         // Populate after saving
         await newItem.populate([
-            { path: 'category', select: 'name' }
+            { path: 'category', select: 'name -_id' }
         ]);
         return res.status(201).json({
             success: true,
             message: 'Item created successfully',
             data: newItem
         });
+
     } catch (error) {
         console.log(error);
         return res.status(500).json({
@@ -68,3 +70,53 @@ export const createItemController = async (req, res) => {
         });
     }
 };
+
+//get item conteoller 
+export const getItemController = async (req, res) => {
+    try {
+        const getitems = await Item.find()
+        if (!getitems) {
+            return res.status(400).json({
+                success: false,
+                message: "Item not found"
+            })
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Item fetch successfully",
+            getitems
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to get Item'
+        })
+    }
+}
+
+//get item by id 
+export const getItemByController = async (req, res) => {
+    try {
+        const { Id } = req.params
+        if (Id) {
+            return res.status(400).json({
+                success: false,
+                message: 'canot find the category '
+            })
+        }
+        const getItem = await Item.findById(Id)
+        return res.status(200).json({
+            success: false,
+            message: "success to fetch item ",
+            getItem
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to get item '
+        })
+    }
+}
