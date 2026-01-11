@@ -8,6 +8,7 @@ import userRouter from './routes/user.route.js'
 import cookieParser from 'cookie-parser'
 import categoryRouter from './routes/category.route.js'
 import itemRouter from './routes/item.route.js'
+import cartRouter from './routes/cart.route.js'
 
 
 const app = express()
@@ -28,6 +29,7 @@ app.use(globalError)
 app.use('/api/v1/user', userRouter)
 app.use('/api/v1/category', categoryRouter)
 app.use('/api/v1/item', itemRouter)
+app.use('/api/v1/cart', cartRouter)
 
 //dbconnection 
 Connection().then(() => {

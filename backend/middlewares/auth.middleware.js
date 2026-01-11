@@ -24,6 +24,7 @@ export const authMiddleware = async (req, res, next) => {
                 message: 'User not found or has been deleted'
             });
         }
+
         // 5. Attach user to request object
         req.user = user;
 
