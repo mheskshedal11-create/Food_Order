@@ -4,8 +4,8 @@ const discountSchema = mongoose.Schema({
     code: {
         type: String,
         required: true,
-        unique: true,  // Add this - discount codes should be unique
-        uppercase: true  // Auto-convert to uppercase
+        unique: true,
+        uppercase: true
     },
     description: {
         type: String,

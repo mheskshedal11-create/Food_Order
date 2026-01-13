@@ -10,6 +10,7 @@ import categoryRouter from './routes/category.route.js'
 import itemRouter from './routes/item.route.js'
 import cartRouter from './routes/cart.route.js'
 import searchRouter from './routes/search.route.js'
+import discountRouter from './routes/discount.route.js'
 
 
 const app = express()
@@ -32,6 +33,7 @@ app.use('/api/v1/category', categoryRouter)
 app.use('/api/v1/item', itemRouter)
 app.use('/api/v1/cart', cartRouter)
 app.use('/api/v1/search', searchRouter)
+app.use('/api/v1/discount', discountRouter)
 
 //dbconnection 
 Connection().then(() => {
